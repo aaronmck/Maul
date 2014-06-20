@@ -23,7 +23,7 @@ to make a single jar version with all of the dependencies built in
 
 Running a single barcoded file
 ===============
-`
+```
 java -jar <path_to_maul_jar>.jar \
 --inFQ1 <reads1>.fq.gz \
 --inFQ2 <reads2>.fq.gz \
@@ -33,10 +33,11 @@ java -jar <path_to_maul_jar>.jar \
 --barcodes1 CGATGT,TGACCA,CTTGTA,GTGAAA \
 --barcodeStatsFile statsFile.txt \
 --barcodeStatsFileUnknown statsUnkownFile.txt
-`
+```
+
 Running a single barcoded file
 ===============
-`
+```
 java -jar <path_to_maul_jar>.jar \
 --inFQ1 <reads1>.fq.gz \
 --inFQ2 <reads2>.fq.gz \
@@ -48,4 +49,4 @@ java -jar <path_to_maul_jar>.jar \
 --barcodes2 TGATGT,TTACCA,TTTGTA,TTGAAA \
 --barcodeStatsFile statsFile.txt \
 --barcodeStatsFileUnknown statsUnkownFile.txt
-`
+```
