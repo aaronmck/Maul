@@ -11,6 +11,7 @@ import java.util.logging.SimpleFormatter
 import main.scala.stats._
 import main.scala.algorithms.ReadRenamer
 import java.util.logging.{Level, Logger}
+import main.scala.algorithms.main.scala.algorithms.ReadOverlapper
 
 /**
  * created by aaronmck on 2/13/14
@@ -44,8 +45,8 @@ object Main extends App {
   val NOTAREALFILE = new File(NOTAREALFILENAME)
 
   // parse the command line arguments
-  val parser = new scopt.OptionParser[Config]("PrePath") {
-    head("CleanHouse", "1.0")
+  val parser = new scopt.OptionParser[Config]("Maul") {
+    head("Maul", "1.0")
 
     // *********************************** Inputs *******************************************************
     opt[File]("inFQ1") required() valueName ("<file>") action { (x, c) => c.copy(inFastq1 = x)} text ("out first end reads FASTQ")
@@ -56,6 +57,8 @@ object Main extends App {
     opt[File]("outFQ2") required() valueName ("<file>") action {(x, c) => c.copy(outFastq2 = x)} text ("the second output read fq")
     opt[File]("barcodeStatsFile") valueName ("<file>") action {(x, c) => c.copy(barcodeStatsFile = x)} text ("the output barcode stats file")
     opt[File]("barcodeStatsFileUnknown") valueName ("<file>") action {(x, c) => c.copy(barcodeStatsUknownFile = x)} text ("the output barcode stats file")
+    opt[File]("overlapFile") valueName ("<file>") action {(x, c) => c.copy(overlapFile = x)} text ("the output for read overlaps, if paired")
+
 
     opt[String]("barcodes1") action {(x, c) => c.copy(barcodes1 = x)} text ("the list of barcodes to look for, comma separated with no spaces. 'all' is accepted")
     opt[String]("barcodes2") action {(x, c) => c.copy(barcodes2 = x)} text ("the list of barcodes to look for, comma separated with no spaces. 'all' is accepted")
@@ -65,7 +68,7 @@ object Main extends App {
 
     // some general command-line setup stuff
     note("Split the reads into output fastq files\n")
-    help("help") text ("prints this usage text")
+    help("help") text ("prints the usage information you see here")
   }
 
   // *********************************** Run *******************************************************
@@ -105,6 +108,9 @@ object Main extends App {
 
       // time the process
       var startTime = System.nanoTime()
+      val overlap = new Array[Int](1000)
+      val calcOverlap = config.overlapFile  != NOTAREALFILENAME
+      val overlapper = ReadOverlapper(new OverlapCounts())
 
       // we assume there's paired reads in both files, though we check as we go
       while (inputFQ1.hasNext()) {
@@ -128,6 +134,9 @@ object Main extends App {
           metricsOutput.addEditDistance(barcodeAndDistance1._1,barcodeAndDistance2._1,barcodeAndDistance1._2,barcodeAndDistance2._2)
           outFQ1.write(renamedReads.get._1)
           outFQ2.write(renamedReads.get._2)
+          if (calcOverlap) {
+            overlapper.checkOverlap(renamedReads.get._1.getReadString,renamedReads.get._2.getReadString,barcodeAndDistance1._1.get, false)
+          }
         } else {
           metricsOutput.addEditDistance(if (barcode1.isDefined) Some(barcode1.get.getReadString) else Some("all"),if (barcode2.isDefined) Some(barcode2.get.getReadString) else Some("all"),0,0)
         }
@@ -146,6 +155,9 @@ object Main extends App {
           metricsOutput.toFile(config.barcodeStatsFile)
         if (config.barcodeStatsUknownFile != NOTAREALFILENAME)
           metricsOutput.toUnknownFile(config.barcodeStatsUknownFile)
+        if (calcOverlap) {
+          overlapper.counter.writeToFile(config.overlapFile)
+        }
       } catch {
         case (e: Exception) => logger.severe("Unable to output the metrics file, Exception with string: " + e.getMessage)
       }
@@ -193,6 +205,7 @@ case class Config(inFastq1: File = new File(Main.NOTAREALFILENAME),
                   barcodes2: String = "all",
                   renameReads: Boolean = true,
                   checkReads: Boolean = true,
-                  maxBarcodeDist: Int = 1
+                  maxBarcodeDist: Int = 1,
+                  overlapFile: File = new File(Main.NOTAREALFILENAME)
                    )
 

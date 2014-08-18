@@ -61,7 +61,7 @@ class OverlapCounts {
       mergedLengths(barcode)(mergedLength) += 1
   }
 
-  def writeToFile(outputOverlap: File, outputLengths: File) {
+  def writeToFile(outputOverlap: File) {
     val outputOv = new PrintWriter(outputOverlap)
     outputOv.write("barcode\toverlap\tcount\n")
     overlaps.map{case(barcode,mp) => {
@@ -69,14 +69,6 @@ class OverlapCounts {
       newMap1.map{case(key,value) => outputOv.write(barcode + "\t" + key + "\t" + value + "\n")}
     }}
     outputOv.close()
-
-    val outputLen = new PrintWriter(outputLengths)
-    outputLen.write("barcode\tread.length\tcount\n")
-    mergedLengths.map{case(barcode,mp) => {
-      val newMap2 = TreeMap[Int,Int](mp.toArray:_*)
-      newMap2.map{case(key,value) => outputLen.write(barcode + "\t" + key + "\t" + value + "\n")}
-    }}
-    outputLen.close()
 
   }
 
