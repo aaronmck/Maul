@@ -20,6 +20,9 @@ libraryDependencies += "com.rockymadden.stringmetric" %% "stringmetric-core" % "
 
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.0"
 
+libraryDependencies += "org.biojava" % "core" % "1.9.0-rc1"
+
+
 scalacOptions += "-target:jvm-1.7"
 
 // set the main class for packaging the main jar
