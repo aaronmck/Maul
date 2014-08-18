@@ -1,4 +1,4 @@
-A basic tool to pull the specified barcoded reads from a set of FASTQ files.  Maul can handle single and dual barcoded runs.  The input is expected to be in either fastq or gziped fastq files (ending in .fq.gz).  The input files need to be separated into three or four files: 
+A basic tool to split the specified barcoded reads out from a set of FASTQ files.  Maul also corrects the read names to reflex the first and second read of a pair, required for Picard and other downstream tools.  Maul can handle single and dual barcoded runs.  The input is expected to be in either fastq or gziped fastq files (ending in .fq.gz).  The input files need to be separated into three or four files: 
 
 - one fastq for the first sequenced read
 - one fastq for the second read (optional)
