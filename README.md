@@ -1,9 +1,10 @@
-A basic tool to pull the specified barcoded reads from a set of FASTQ files.  Maul can handle single and dual barcoded runs.  The input is expected to
-be in either fastq or gziped fastq files (ending in .fq.gz).  The input files need to be separated into three or four files: one fastq for the first read,
-one fastq for the second read, and one or two fastqs respectively for single or dual barcoded libraries. Maul optionally outputs a file with read counts for each
-barcode combination, as well as a sorted histogram file for unknown barcodes that were seen during parsing.  The maximum edit distance can be set for barcodes
-allowing X number of mismatches.  Be careful with this parameter, as many barcode libraries are designed with an edit distance of 3 between individual barcodes, so setting
-this parameter above 1 could result in barcode switches. Set this to zero if you'd like to be more stringent about barcode parsing.
+A basic tool to pull the specified barcoded reads from a set of FASTQ files.  Maul can handle single and dual barcoded runs.  The input is expected to be in either fastq or gziped fastq files (ending in .fq.gz).  The input files need to be separated into three or four files: 
+
+- one fastq for the first sequenced read
+- one fastq for the second read (optional)
+- one or two fastqs respectively for single or dual barcoded libraries. 
+
+Maul optionally outputs a file with read counts for each barcode combination, as well as a sorted histogram file for unknown barcodes that were seen during parsing.  The maximum edit distance can be set for barcodes allowing X number of mismatches.  Be careful with this parameter, as many barcode libraries are designed with an edit distance of 3 between individual barcodes, so setting this parameter above 1 could result in barcode switches. Set this to zero if you'd like to be more stringent about barcode parsing.
 
 Building
 ==============
