@@ -22,7 +22,7 @@ sbt one-jar
 
 to make a single jar version with all of the dependencies built in
 
-Running a single barcoded file
+Running a single-barcoded file
 ===============
 ```
 java -jar <path_to_maul_jar>.jar \
@@ -36,7 +36,7 @@ java -jar <path_to_maul_jar>.jar \
 --barcodeStatsFileUnknown statsUnkownFile.txt
 ```
 
-Running a single barcoded file
+Running a dual-barcoded file
 ===============
 ```
 java -jar <path_to_maul_jar>.jar \
