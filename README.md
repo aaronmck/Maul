@@ -24,6 +24,9 @@ to make a single jar version with all of the dependencies built in
 
 Running a single-barcoded file
 ===============
+
+An important note: this implicitly sets the edit distance to 1 (default), if you want to more or less stringent barcode splitting, you should set the maxDistance parameter.  Again, it's dangerous to go much above 1 without specificly designed barcodes.
+
 ```
 java -jar <path_to_maul_jar>.jar \
 --inFQ1 <reads1>.fq.gz \
@@ -38,6 +41,9 @@ java -jar <path_to_maul_jar>.jar \
 
 Running a dual-barcoded file
 ===============
+
+(barcode matching distance again allowed to be one)
+
 ```
 java -jar <path_to_maul_jar>.jar \
 --inFQ1 <reads1>.fq.gz \
