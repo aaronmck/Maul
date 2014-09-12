@@ -1,4 +1,4 @@
-name := "PrePath"
+name := "Maul"
 
 version := "1.0"
 

@@ -83,11 +83,15 @@ object Main extends App {
       // input files
       val inputFQ1 = new FastqReader(config.inFastq1)
       val inputFQ2 = new FastqReader(config.inFastq2)
-      val inBarcodeFQ1 = new FastqReader(config.inBarcodeFQ1)
 
-      val useBacode2 = config.inBarcodeFQ2 != NOTAREALFILE
+      val useBarcode1 = config.inBarcodeFQ1 != NOTAREALFILE && config.inBarcodeFQ1.exists
+      var inBarcodeFQ1 : Option[FastqReader] = None
+      if (useBarcode1)
+        inBarcodeFQ1 = Some(new FastqReader(config.inBarcodeFQ1))
+
+      val useBarcode2 = config.inBarcodeFQ2 != NOTAREALFILE && config.inBarcodeFQ2.exists
       var inBarcodeFQ2 : Option[FastqReader] = None
-      if (useBacode2)
+      if (useBarcode2)
         inBarcodeFQ2 = Some(new FastqReader(config.inBarcodeFQ2))
 
       // output files
@@ -117,8 +121,8 @@ object Main extends App {
         val read1 = inputFQ1.next()
         val read2 = inputFQ2.next()
 
-        val barcode1: Option[FastqRecord] = Some(inBarcodeFQ1.next())
-        val barcode2: Option[FastqRecord] = if (useBacode2) Some(inBarcodeFQ2.get.next()) else None
+        val barcode1: Option[FastqRecord] = if (useBarcode1) Some(inBarcodeFQ1.get.next()) else None
+        val barcode2: Option[FastqRecord] = if (useBarcode2) Some(inBarcodeFQ2.get.next()) else None
 
         // get the renamed reads
         val renamedReads = if (config.renameReads) renamer.renamePicardReads(read1, read2) else Some(Tuple2[FastqRecord,FastqRecord](read1,read2))
@@ -141,10 +145,12 @@ object Main extends App {
           metricsOutput.addEditDistance(if (barcode1.isDefined) Some(barcode1.get.getReadString) else Some("all"),if (barcode2.isDefined) Some(barcode2.get.getReadString) else Some("all"),0,0)
         }
         readCount += 1
-        if (readCount % 1000000 == 0) {
+
+        val perWhat = 1000000 // for metric output, fix the text below when you change this
+        if (readCount % perWhat == 0) {
           val endTime = System.nanoTime()
 
-          logger.info("total reads = " + readCount/1000000 + " million processed; approximately " + ((endTime - startTime)/1000000000.0) + " seconds per million reads")
+          logger.info(readCount/perWhat + " million processed; approximately " + ((endTime - startTime)/1000000000.0) + " seconds per million reads: " + readCountOutput + " reads output")
           startTime = endTime
         }
       }
