@@ -162,7 +162,10 @@ object Main extends App {
         if (config.barcodeStatsUknownFile != NOTAREALFILENAME)
           metricsOutput.toUnknownFile(config.barcodeStatsUknownFile)
         if (calcOverlap) {
-          overlapper.counter.writeToFile(config.overlapFile)
+          if (config.overlapFile != NOTAREALFILENAME)
+            overlapper.counter.writeToFile(config.overlapFile)
+          else
+            logger.severe("overlap output asked for but no valid overlap file is specified, skipping")
         }
       } catch {
         case (e: Exception) => logger.severe("Unable to output the metrics file, Exception with string: " + e.getMessage)
