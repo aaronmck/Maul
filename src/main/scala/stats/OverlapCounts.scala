@@ -34,7 +34,7 @@ import scala.collection.immutable.TreeMap
 class OverlapCounts {
   val overlaps = new mutable.HashMap[String,mutable.HashMap[Int,Int]]()
   val mergedLengths = new mutable.HashMap[String,mutable.HashMap[Int,Int]]()
-
+  var maxReadLength = 0
   /**
    * add a read overlap to our counts
    *
@@ -44,11 +44,12 @@ class OverlapCounts {
    * @param read2Length the length of the second read, trimmed of any adapters
    */
   def addRead(barcode: String, overlap: Int, read1Length: Int, read2Length: Int) {
+    if (read1Length > maxReadLength || read2Length > maxReadLength) maxReadLength = math.max(read1Length,read2Length)
+
     if (!(overlaps contains barcode)) {
       overlaps(barcode) = new mutable.HashMap[Int,Int]()
       mergedLengths(barcode) = new mutable.HashMap[Int,Int]()
     }
-
     if (!(overlaps(barcode) contains overlap)) {
       overlaps(barcode)(overlap) = 1
     } else {
@@ -64,9 +65,17 @@ class OverlapCounts {
   def writeToFile(outputOverlap: File) {
     val outputOv = new PrintWriter(outputOverlap)
     outputOv.write("barcode\toverlap\tcount\n")
+
+    // start at zero, go to the maximum read length we've see
+
     overlaps.map{case(barcode,mp) => {
-      val newMap1 = TreeMap[Int,Int](mp.toArray:_*)
-      newMap1.map{case(key,value) => outputOv.write(barcode + "\t" + key + "\t" + value + "\n")}
+      //val newMap1 = TreeMap[Int,Int](mp.toArray:_*)
+      //newMap1.map{case(key,value) => outputOv.write(barcode + "\t" + key + "\t" + value + "\n")}
+      for (i <- 0 until maxReadLength + 1) {
+        var count = 0
+        if (mp contains i) count = mp(i)
+          outputOv.write(barcode + "\t" + i + "\t" + count + "\n")
+      }
     }}
     outputOv.close()
 

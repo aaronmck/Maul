@@ -71,7 +71,6 @@ case class BarcodeOccurance(barcodeList1: Option[Array[String]],barcodeList2: Op
       unknownCounts(barcode2.get) += 1
     }
 
-
     editDistances(pos1)(pos2)(editDist1+editDist2) += 1
   }
 

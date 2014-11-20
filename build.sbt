@@ -14,13 +14,15 @@ unmanagedBase <<= baseDirectory { base => base / "project" }
 
 libraryDependencies += "com.github.scopt" %% "scopt" % "3.2.0"
 
-libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.0" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.2" % "test"
 
 libraryDependencies += "com.rockymadden.stringmetric" %% "stringmetric-core" % "0.27.2"
 
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.0"
 
 libraryDependencies += "org.biojava" % "core" % "1.9.0-rc1"
+
+libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.2"
 
 
 scalacOptions += "-target:jvm-1.7"
