@@ -3,7 +3,7 @@ package main.scala
 import _root_.algorithms.BarcodeEditDistance
 import _root_.algorithms.stats.OverlapCounts
 import java.io.{PrintWriter, File, BufferedInputStream}
-import net.sf.picard.fastq.{FastqRecord, FastqWriterFactory, FastqReader}
+import net.sf.picard.fastq.{FastqWriter, FastqRecord, FastqWriterFactory, FastqReader}
 import main.scala.input.{SequenceReader, ReadContainer, FastqSequenceReader}
 import main.scala.output.FastqOutputManager
 import java.util.logging.SimpleFormatter
@@ -51,11 +51,11 @@ object Main extends App {
 
     // *********************************** Inputs *******************************************************
     opt[File]("inFQ1") required() valueName ("<file>") action { (x, c) => c.copy(inFastq1 = x)} text ("out first end reads FASTQ")
-    opt[File]("inFQ2") required() valueName ("<file>") action { (x, c) => c.copy(inFastq2 = x)} text ("the second end reads FASTQ")
+    opt[File]("inFQ2") valueName ("<file>") action { (x, c) => c.copy(inFastq2 = x)} text ("the second end reads FASTQ")
     opt[File]("inBarcodeFQ1") valueName ("<file>") action { (x, c) => c.copy(inBarcodeFQ1 = x)} text ("The fastq file with the first set of barcodes")
     opt[File]("inBarcodeFQ2") valueName ("<file>") action { (x, c) => c.copy(inBarcodeFQ2 = x)} text ("The fastq file with the second set of barcodes")
     opt[File]("outFQ1") required() valueName ("<file>") action { (x, c) => c.copy(outFastq1 = x)} text ("the first output read fq")
-    opt[File]("outFQ2") required() valueName ("<file>") action { (x, c) => c.copy(outFastq2 = x)} text ("the second output read fq")
+    opt[File]("outFQ2") valueName ("<file>") action { (x, c) => c.copy(outFastq2 = x)} text ("the second output read fq")
     opt[File]("barcodeStatsFile") valueName ("<file>") action { (x, c) => c.copy(barcodeStatsFile = x)} text ("the output barcode stats file")
     opt[File]("barcodeStatsFileUnknown") valueName ("<file>") action { (x, c) => c.copy(barcodeStatsUknownFile = x)} text ("the output barcode stats file")
     opt[File]("overlapFile") valueName ("<file>") action { (x, c) => c.copy(overlapFile = x)} text ("the output for read overlaps, if paired")
@@ -81,9 +81,12 @@ object Main extends App {
       val logger = Logger.getLogger("MainProcessing")
       logger.setLevel(Level.INFO)
 
+      // are we using one fastq or two
+      val pairedEnd = config.inFastq2.exists()
+
       // input files
       val inputFQ1 = new FastqReader(config.inFastq1)
-      val inputFQ2 = new FastqReader(config.inFastq2)
+      val inputFQ2: Option[FastqReader] = if (pairedEnd) Some(new FastqReader(config.inFastq2)) else None
 
       val useBarcode1 = config.inBarcodeFQ1 != NOTAREALFILE && config.inBarcodeFQ1.exists
       var inBarcodeFQ1: Option[FastqReader] = None
@@ -97,10 +100,11 @@ object Main extends App {
 
       println(useBarcode1)
       println(useBarcode2)
+      println("Renaming reads = " + config.renameReads)
       // output files
       val writerFact = new FastqWriterFactory()
       val outFQ1 = writerFact.newWriter(config.outFastq1)
-      val outFQ2 = writerFact.newWriter(config.outFastq2)
+      val outFQ2: Option[FastqWriter] = if (pairedEnd) Some(writerFact.newWriter(config.outFastq2)) else None
 
       // determine barcode parsing - are we just dumping all the barcoded reads out?
       val barcodes1 = BarcodeEditDistance.parseBarcodes(config.barcodes1)
@@ -113,6 +117,7 @@ object Main extends App {
       var readCount = 0
       var readCountOutput = 0
 
+
       // time the process
       var startTime = System.nanoTime()
       val overlap = new Array[Int](1000)
@@ -122,13 +127,17 @@ object Main extends App {
       // we assume there's paired reads in both files, though we check as we go
       while (inputFQ1.hasNext()) {
         val read1 = inputFQ1.next()
-        val read2 = inputFQ2.next()
+        val read2: Option[FastqRecord] = if (pairedEnd) Some(inputFQ2.get.next()) else None
 
         val barcode1: Option[FastqRecord] = if (useBarcode1) Some(inBarcodeFQ1.get.next()) else None
         val barcode2: Option[FastqRecord] = if (useBarcode2) Some(inBarcodeFQ2.get.next()) else None
 
         // get the renamed reads
-        val renamedReads = if (config.renameReads) renamer.renamePicardReads(read1, read2) else Some(Tuple2[FastqRecord, FastqRecord](read1, read2))
+        val renamedReads =
+          if (config.renameReads && pairedEnd)
+            renamer.renamePicardReads(read1, read2.get)
+          else
+            Some(Tuple2[FastqRecord, Option[FastqRecord]](read1, read2))
 
         val barcodeAndDistance1 = if (barcodes1.isDefined) BarcodeEditDistance.distance(barcode1, barcodes1.get) else Tuple2[Option[String], Int](Some("all"), 0)
         val barcodeAndDistance2 = if (barcodes2.isDefined) BarcodeEditDistance.distance(barcode2, barcodes2.get) else Tuple2[Option[String], Int](Some("all"), 0)
@@ -140,9 +149,10 @@ object Main extends App {
 
           metricsOutput.addEditDistance(barcodeAndDistance1._1, barcodeAndDistance2._1, barcodeAndDistance1._2, barcodeAndDistance2._2)
           outFQ1.write(renamedReads.get._1)
-          outFQ2.write(renamedReads.get._2)
-          if (calcOverlap) {
-            overlapper.checkOverlap(renamedReads.get._1.getReadString, renamedReads.get._2.getReadString, barcodeAndDistance1._1.get, false, config.readLength)
+          if (pairedEnd)
+            outFQ2.get.write(renamedReads.get._2.get)
+          if (pairedEnd && calcOverlap) {
+            overlapper.checkOverlap(renamedReads.get._1.getReadString, renamedReads.get._2.get.getReadString, barcodeAndDistance1._1.get, false, config.readLength)
           }
         }
         metricsOutput.addEditDistance(if (barcode1.isDefined) Some(barcode1.get.getReadString) else Some("all"),
@@ -176,7 +186,7 @@ object Main extends App {
       }
 
       outFQ1.close()
-      outFQ2.close()
+      if (pairedEnd) outFQ2.get.close()
     }
   } getOrElse {
     Console.println("Unable to parse the command line arguments you passed in, please check that your parameters are correct")

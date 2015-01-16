@@ -55,7 +55,7 @@ class ReadRenamer(emitMismatchedReads: Boolean = true, firstExt: String = "1",se
     return Some(Tuple2(strippedRead1 + firstExt,strippedRead2 + secondExt))
   }
 
-  def renamePicardReads(read1: FastqRecord, read2: FastqRecord): Option[Tuple2[FastqRecord,FastqRecord]] = {
+  def renamePicardReads(read1: FastqRecord, read2: FastqRecord): Option[Tuple2[FastqRecord,Option[FastqRecord]]] = {
     val names = renameReads(read1.getReadHeader,read2.getReadHeader)
 
     if (!names.isDefined) return None
@@ -63,6 +63,6 @@ class ReadRenamer(emitMismatchedReads: Boolean = true, firstExt: String = "1",se
     val newRead1 = new FastqRecord(names.get._1,read1.getReadString,read1.getBaseQualityHeader,read1.getBaseQualityString)
     val newRead2 = new FastqRecord(names.get._2,read2.getReadString,read2.getBaseQualityHeader,read2.getBaseQualityString)
 
-    return(Some(Tuple2[FastqRecord,FastqRecord](newRead1,newRead2)))
+    return(Some(Tuple2[FastqRecord,Option[FastqRecord]](newRead1,Some(newRead2))))
   }
 }
