@@ -9,7 +9,7 @@ import main.scala.output.FastqOutputManager
 import java.util.logging.SimpleFormatter
 
 import main.scala.stats._
-import main.scala.algorithms.ReadRenamer
+import main.scala.algorithms.ReadCorrector
 import java.util.logging.{Level, Logger}
 import main.scala.algorithms.main.scala.algorithms.ReadOverlapper
 
@@ -66,6 +66,8 @@ object Main extends App {
     opt[Boolean]("renameReadPairs") action { (x, c) => c.copy(renameReads = x)} text ("rename the first and second reads so that they end with slash 1 and slash 2 respectively")
     opt[Boolean]("checkReadNames") action { (x, c) => c.copy(checkReads = x)} text ("do we check that the read names for pairs are the same, except the ending slash number (default true)")
     opt[Int]("maxDistance") action { (x, c) => c.copy(maxBarcodeDist = x)} text ("the max edit distance we allow for a barcode (default 1)")
+    opt[Int]("hexTrim") action { (x, c) => c.copy(hexTrim = x)} text ("if we want to trim off the first X bases since the reads were generated with random heximer primers")
+
 
     // some general command-line setup stuff
     note("Split the reads into output fastq files\n")
@@ -112,7 +114,7 @@ object Main extends App {
 
       // get a metrics output file
       val metricsOutput = BarcodeOccurance(barcodes1, barcodes2, config.maxBarcodeDist)
-      val renamer = new ReadRenamer()
+      val renamer = new ReadCorrector(config.renameReads,config.hexTrim)
 
       var readCount = 0
       var readCountOutput = 0
@@ -133,11 +135,7 @@ object Main extends App {
         val barcode2: Option[FastqRecord] = if (useBarcode2) Some(inBarcodeFQ2.get.next()) else None
 
         // get the renamed reads
-        val renamedReads =
-          if (config.renameReads && pairedEnd)
-            renamer.renamePicardReads(read1, read2.get)
-          else
-            Some(Tuple2[FastqRecord, Option[FastqRecord]](read1, read2))
+        val renamedReads = renamer.correctReads(read1, read2.get)
 
         val barcodeAndDistance1 = if (barcodes1.isDefined) BarcodeEditDistance.distance(barcode1, barcodes1.get) else Tuple2[Option[String], Int](Some("all"), 0)
         val barcodeAndDistance2 = if (barcodes2.isDefined) BarcodeEditDistance.distance(barcode2, barcodes2.get) else Tuple2[Option[String], Int](Some("all"), 0)
@@ -148,6 +146,8 @@ object Main extends App {
           readCountOutput += 1
 
           metricsOutput.addEditDistance(barcodeAndDistance1._1, barcodeAndDistance2._1, barcodeAndDistance1._2, barcodeAndDistance2._2)
+
+
           outFQ1.write(renamedReads.get._1)
           if (pairedEnd)
             outFQ2.get.write(renamedReads.get._2.get)
@@ -156,8 +156,8 @@ object Main extends App {
           }
         }
         metricsOutput.addEditDistance(if (barcode1.isDefined) Some(barcode1.get.getReadString) else Some("all"),
-                                      if (barcode2.isDefined) Some(barcode2.get.getReadString) else Some("all"),
-                                      0, 0)
+          if (barcode2.isDefined) Some(barcode2.get.getReadString) else Some("all"),
+          0, 0)
         readCount += 1
 
         val perWhat = 1000000 // for metric output, fix the text below when you change this
@@ -226,10 +226,11 @@ case class Config(inFastq1: File = new File(Main.NOTAREALFILENAME),
                   barcodeStatsUknownFile: File = new File(Main.NOTAREALFILENAME),
                   barcodes1: String = "all",
                   barcodes2: String = "all",
-                  renameReads: Boolean = true,
+                  renameReads: Boolean = false,
                   checkReads: Boolean = true,
                   maxBarcodeDist: Int = 1,
                   overlapFile: File = new File(Main.NOTAREALFILENAME),
-                  readLength: Int = 101
+                  readLength: Int = 101,
+                  hexTrim: Int = 0
                    )
 
