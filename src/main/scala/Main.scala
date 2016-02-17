@@ -111,6 +111,7 @@ object Main extends App {
       // determine barcode parsing - are we just dumping all the barcoded reads out?
       val barcodes1 = BarcodeEditDistance.parseBarcodes(config.barcodes1)
       val barcodes2 = BarcodeEditDistance.parseBarcodes(config.barcodes2)
+      logger.info("split reads on barcode " + barcodes1 + " and " + barcodes2)
 
       // get a metrics output file
       val metricsOutput = BarcodeOccurance(barcodes1, barcodes2, config.maxBarcodeDist)
@@ -155,9 +156,12 @@ object Main extends App {
             overlapper.checkOverlap(renamedReads.get._1.getReadString, renamedReads.get._2.get.getReadString, barcodeAndDistance1._1.get, false, config.readLength)
           }
         }
+
+
         metricsOutput.addEditDistance(if (barcode1.isDefined) Some(barcode1.get.getReadString) else Some("all"),
           if (barcode2.isDefined) Some(barcode2.get.getReadString) else Some("all"),
           0, 0)
+
         readCount += 1
 
         val perWhat = 1000000 // for metric output, fix the text below when you change this

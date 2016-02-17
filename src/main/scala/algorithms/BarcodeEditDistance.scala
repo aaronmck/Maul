@@ -116,7 +116,7 @@ object BarcodeEditDistance {
   // return None (Scala None) if they want to use all the barcodes or an option of strings otherwise
   def parseBarcodes(barcodes: String) : Option[Array[String]] = {
     val sp = barcodes.stripPrefix("\"").stripSuffix("\"").split(",")
-    if (sp.length == 1 && sp(0) == "all")
+    if (sp.length == 1 && sp(0).toLowerCase == "all")
       return None
     else
       return Some(sp)
