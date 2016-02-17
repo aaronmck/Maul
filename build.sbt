@@ -4,8 +4,6 @@ version := "1.0"
 
 scalaVersion := "2.10.3"
 
-seq(com.github.retronym.SbtOneJar.oneJarSettings: _*)
-
 resolvers += Resolver.sonatypeRepo("public")
 
 resolvers += "erichseifert.de" at "http://mvn.erichseifert.de/maven2"
