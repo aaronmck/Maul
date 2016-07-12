@@ -17,7 +17,7 @@ sbt compile
 to build the tool, and 
 
 `
-sbt one-jar
+sbt assembly
 `
 
 to make a single jar version with all of the dependencies built in
