@@ -17,7 +17,7 @@ sbt compile
 to build the tool, and 
 
 `
-sbt one-jar
+sbt assembly
 `
 
 to make a single jar version with all of the dependencies built in
@@ -25,7 +25,7 @@ to make a single jar version with all of the dependencies built in
 Running a single-barcoded file
 ===============
 
-An important note: this implicitly sets the edit distance to 1 (default), if you want to more or less stringent barcode splitting, you should set the maxDistance parameter.  Again, it's dangerous to go much above 1 without specificly designed barcodes.
+An important note: this implicitly sets the edit distance to 1 (default) - if you want more or less stringent barcode splitting, you should set the maxDistance parameter.  Again, it's dangerous to go much above 1 without specifically designed barcodes.
 
 ```
 java -jar <path_to_maul_jar>.jar \
