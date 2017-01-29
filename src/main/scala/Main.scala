@@ -11,7 +11,6 @@ import java.util.logging.SimpleFormatter
 import main.scala.stats._
 import main.scala.algorithms.ReadCorrector
 import java.util.logging.{Level, Logger}
-import main.scala.algorithms.main.scala.algorithms.ReadOverlapper
 
 /**
  * created by aaronmck on 2/13/14
@@ -56,13 +55,14 @@ object Main extends App {
     opt[File]("inBarcodeFQ2") valueName ("<file>") action { (x, c) => c.copy(inBarcodeFQ2 = x)} text ("The fastq file with the second set of barcodes")
     opt[File]("outFQ1") required() valueName ("<file>") action { (x, c) => c.copy(outFastq1 = x)} text ("the first output read fq")
     opt[File]("outFQ2") valueName ("<file>") action { (x, c) => c.copy(outFastq2 = x)} text ("the second output read fq")
+    opt[File]("outFQIndex1") required() valueName ("<file>") action { (x, c) => c.copy(outFastqIndex1 = x)} text ("the first input output read fq")
+    opt[File]("outFQIndex2") valueName ("<file>") action { (x, c) => c.copy(outFastqIndex2 = x)} text ("the second index output read fq")
     opt[File]("barcodeStatsFile") valueName ("<file>") action { (x, c) => c.copy(barcodeStatsFile = x)} text ("the output barcode stats file")
     opt[File]("barcodeStatsFileUnknown") valueName ("<file>") action { (x, c) => c.copy(barcodeStatsUknownFile = x)} text ("the output barcode stats file")
-    opt[File]("overlapFile") valueName ("<file>") action { (x, c) => c.copy(overlapFile = x)} text ("the output for read overlaps, if paired")
-    opt[Int]("readLength") required() action { (x, c) => c.copy(readLength = x)} text ("the length of the reads to use for the overlapping")
 
-    opt[String]("barcodes1") action { (x, c) => c.copy(barcodes1 = x)} text ("the list of barcodes to look for, comma separated with no spaces. 'all' is accepted")
-    opt[String]("barcodes2") action { (x, c) => c.copy(barcodes2 = x)} text ("the list of barcodes to look for, comma separated with no spaces. 'all' is accepted")
+    opt[String]("barcodes1") action { (x, c) => c.copy(barcodes1 = x)} text ("the list of first index barcodes to look for, comma separated with no spaces. 'all' is accepted")
+    opt[String]("barcodes2") action { (x, c) => c.copy(barcodes2 = x)} text ("the list of second index barcodes to look for, comma separated with no spaces. 'all' is accepted")
+
     opt[Boolean]("renameReadPairs") action { (x, c) => c.copy(renameReads = x)} text ("rename the first and second reads so that they end with slash 1 and slash 2 respectively")
     opt[Boolean]("checkReadNames") action { (x, c) => c.copy(checkReads = x)} text ("do we check that the read names for pairs are the same, except the ending slash number (default true)")
     opt[Int]("maxDistance") action { (x, c) => c.copy(maxBarcodeDist = x)} text ("the max edit distance we allow for a barcode (default 1)")
@@ -83,49 +83,54 @@ object Main extends App {
       val logger = Logger.getLogger("MainProcessing")
       logger.setLevel(Level.INFO)
 
+      val perWhat = 1000000 // output status for every X reads -- the associated message text may have to change as well
+
       // are we using one fastq or two
       val pairedEnd = config.inFastq2.exists()
 
-      // input files
+      // ----------------------------------------------------------------------------------------------------------------------------
+      // setup the input files
+      // ----------------------------------------------------------------------------------------------------------------------------
       val inputFQ1 = new FastqReader(config.inFastq1)
       val inputFQ2: Option[FastqReader] = if (pairedEnd) Some(new FastqReader(config.inFastq2)) else None
 
-      val useBarcode1 = config.inBarcodeFQ1 != NOTAREALFILE && config.inBarcodeFQ1.exists
+      val useBarcode1 = config.inBarcodeFQ1 != NOTAREALFILE && config.inBarcodeFQ1.exists // we setup this variable to use for barcode output
       var inBarcodeFQ1: Option[FastqReader] = None
-      if (useBarcode1)
-        inBarcodeFQ1 = Some(new FastqReader(config.inBarcodeFQ1))
+      if (useBarcode1) inBarcodeFQ1 = Some(new FastqReader(config.inBarcodeFQ1))
 
-      val useBarcode2 = config.inBarcodeFQ2 != NOTAREALFILE && config.inBarcodeFQ2.exists
+      val useBarcode2 = config.inBarcodeFQ2 != NOTAREALFILE && config.inBarcodeFQ2.exists // we setup this variable to use for barcode output
       var inBarcodeFQ2: Option[FastqReader] = None
-      if (useBarcode2)
-        inBarcodeFQ2 = Some(new FastqReader(config.inBarcodeFQ2))
+      if (useBarcode2) inBarcodeFQ2 = Some(new FastqReader(config.inBarcodeFQ2))
 
-      println(useBarcode1)
-      println(useBarcode2)
-      println("Renaming reads = " + config.renameReads)
-      // output files
+      // ----------------------------------------------------------------------------------------------------------------------------
+      // setup the output files
+      // ----------------------------------------------------------------------------------------------------------------------------
       val writerFact = new FastqWriterFactory()
       val outFQ1 = writerFact.newWriter(config.outFastq1)
       val outFQ2: Option[FastqWriter] = if (pairedEnd) Some(writerFact.newWriter(config.outFastq2)) else None
 
+      val outIndexFQ1: Option[FastqWriter] = if (useBarcode1) Some(writerFact.newWriter(config.outFastqIndex1)) else None
+      val outIndexFQ2: Option[FastqWriter] = if (useBarcode2) Some(writerFact.newWriter(config.outFastqIndex2)) else None
+
       // determine barcode parsing - are we just dumping all the barcoded reads out?
       val barcodes1 = BarcodeEditDistance.parseBarcodes(config.barcodes1)
       val barcodes2 = BarcodeEditDistance.parseBarcodes(config.barcodes2)
-      logger.info("split reads on barcode " + barcodes1 + " and " + barcodes2)
 
       // get a metrics output file
       val metricsOutput = BarcodeOccurance(barcodes1, barcodes2, config.maxBarcodeDist)
       val renamer = new ReadCorrector(config.renameReads,config.hexTrim)
 
+      // ----------------------------------------------------------------------------------------------------------------------------
+      // process the reads
+      // ----------------------------------------------------------------------------------------------------------------------------
+
       var readCount = 0
       var readCountOutput = 0
-
 
       // time the process
       var startTime = System.nanoTime()
       val overlap = new Array[Int](1000)
       val calcOverlap = config.overlapFile != NOTAREALFILENAME
-      val overlapper = ReadOverlapper(new OverlapCounts())
 
       // we assume there's paired reads in both files, though we check as we go
       while (inputFQ1.hasNext()) {
@@ -141,6 +146,8 @@ object Main extends App {
         val barcodeAndDistance1 = if (barcodes1.isDefined) BarcodeEditDistance.distance(barcode1, barcodes1.get) else Tuple2[Option[String], Int](Some("all"), 0)
         val barcodeAndDistance2 = if (barcodes2.isDefined) BarcodeEditDistance.distance(barcode2, barcodes2.get) else Tuple2[Option[String], Int](Some("all"), 0)
 
+        // should we rename the reads in any way?
+        // -------------------------------------------------------------------------------------------------------------------------
         if (renamedReads.isDefined &&
           (!barcodes1.isDefined || (barcodeAndDistance1._1.isDefined && barcodeAndDistance1._2 <= config.maxBarcodeDist)) &&
           (!barcodes2.isDefined || (barcodeAndDistance2._1.isDefined && barcodeAndDistance2._2 <= config.maxBarcodeDist))) {
@@ -148,23 +155,19 @@ object Main extends App {
 
           metricsOutput.addEditDistance(barcodeAndDistance1._1, barcodeAndDistance2._1, barcodeAndDistance1._2, barcodeAndDistance2._2)
 
+          if (useBarcode1) outIndexFQ1.get.write(barcode1.get)
+          if (useBarcode2) outIndexFQ2.get.write(barcode2.get)
 
           outFQ1.write(renamedReads.get._1)
           if (pairedEnd)
             outFQ2.get.write(renamedReads.get._2.get)
-          if (pairedEnd && calcOverlap) {
-            overlapper.checkOverlap(renamedReads.get._1.getReadString, renamedReads.get._2.get.getReadString, barcodeAndDistance1._1.get, false, config.readLength)
-          }
         }
 
-
-        metricsOutput.addEditDistance(if (barcode1.isDefined) Some(barcode1.get.getReadString) else Some("all"),
-          if (barcode2.isDefined) Some(barcode2.get.getReadString) else Some("all"),
-          0, 0)
+        metricsOutput.addEditDistance(if (barcode1.isDefined) Some(barcode1.get.getReadString) else Some("all"),  if (barcode2.isDefined) Some(barcode2.get.getReadString) else Some("all"), 0, 0)
 
         readCount += 1
 
-        val perWhat = 1000000 // for metric output, fix the text below when you change this
+        // output status?
         if (readCount % perWhat == 0) {
           val endTime = System.nanoTime()
 
@@ -172,24 +175,23 @@ object Main extends App {
           startTime = endTime
         }
       }
+
       logger.info("total reads = " + readCount)
       logger.info("total reads output = " + readCountOutput)
+
       try {
         if (config.barcodeStatsFile != NOTAREALFILENAME)
           metricsOutput.toFile(config.barcodeStatsFile)
         if (config.barcodeStatsUknownFile != NOTAREALFILENAME)
           metricsOutput.toUnknownFile(config.barcodeStatsUknownFile)
-        if (calcOverlap) {
-          if (config.overlapFile != NOTAREALFILENAME)
-            overlapper.counter.writeToFile(config.overlapFile)
-          else
-            logger.severe("overlap output asked for but no valid overlap file is specified, skipping")
-        }
       } catch {
         case (e: Exception) => logger.severe("Unable to output the metrics file, Exception with string: " + e.getMessage)
       }
 
       outFQ1.close()
+      if (useBarcode1) outIndexFQ1.get.close()
+      if (useBarcode2) outIndexFQ2.get.close()
+
       if (pairedEnd) outFQ2.get.close()
     }
   } getOrElse {
@@ -225,6 +227,8 @@ case class Config(inFastq1: File = new File(Main.NOTAREALFILENAME),
                   inBarcodeFQ2: File = new File(Main.NOTAREALFILENAME),
                   outFastq1: File = new File(Main.NOTAREALFILENAME),
                   outFastq2: File = new File(Main.NOTAREALFILENAME),
+                  outFastqIndex1: File = new File(Main.NOTAREALFILENAME),
+                  outFastqIndex2: File = new File(Main.NOTAREALFILENAME),
                   outBarcodeFQ: File = new File(Main.NOTAREALFILENAME),
                   barcodeStatsFile: File = new File(Main.NOTAREALFILENAME),
                   barcodeStatsUknownFile: File = new File(Main.NOTAREALFILENAME),

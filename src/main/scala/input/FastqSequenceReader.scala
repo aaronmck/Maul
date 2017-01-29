@@ -1,7 +1,7 @@
 package main.scala.input
 
 import java.io.File
-import net.sf.picard.fastq.FastqReader
+import net.sf.picard.fastq.{FastqWriter, FastqRecord, FastqWriterFactory, FastqReader}
 
 /**
  * created by aaronmck on 2/15/14
@@ -41,4 +41,10 @@ case class FastqSequenceReader(inputFastq: File, firstRead: Boolean ) extends Se
   def hasNext() : Boolean = input.hasNext
 
   override def iterator: Iterator[ReadContainer] = this
+}
+
+object FastqSequenceReader {
+  def fastqToOutputString(record: FastqRecord): String = {
+    record.getReadHeader + "\n" + record.getReadString()  + "\n+\n" +record.getBaseQualityString()  + "\n"
+  }
 }
