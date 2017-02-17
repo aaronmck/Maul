@@ -9,7 +9,6 @@ import main.scala.output.FastqOutputManager
 import java.util.logging.SimpleFormatter
 
 import main.scala.stats._
-import main.scala.algorithms.ReadCorrector
 import java.util.logging.{Level, Logger}
 
 /**
@@ -55,18 +54,14 @@ object Main extends App {
     opt[File]("inBarcodeFQ2") valueName ("<file>") action { (x, c) => c.copy(inBarcodeFQ2 = x)} text ("The fastq file with the second set of barcodes")
     opt[File]("outFQ1") required() valueName ("<file>") action { (x, c) => c.copy(outFastq1 = x)} text ("the first output read fq")
     opt[File]("outFQ2") valueName ("<file>") action { (x, c) => c.copy(outFastq2 = x)} text ("the second output read fq")
-    opt[File]("outFQIndex1") required() valueName ("<file>") action { (x, c) => c.copy(outFastqIndex1 = x)} text ("the first input output read fq")
+    opt[File]("outFQIndex1") valueName ("<file>") action { (x, c) => c.copy(outFastqIndex1 = x)} text ("the first input output read fq")
     opt[File]("outFQIndex2") valueName ("<file>") action { (x, c) => c.copy(outFastqIndex2 = x)} text ("the second index output read fq")
     opt[File]("barcodeStatsFile") valueName ("<file>") action { (x, c) => c.copy(barcodeStatsFile = x)} text ("the output barcode stats file")
     opt[File]("barcodeStatsFileUnknown") valueName ("<file>") action { (x, c) => c.copy(barcodeStatsUknownFile = x)} text ("the output barcode stats file")
 
     opt[String]("barcodes1") action { (x, c) => c.copy(barcodes1 = x)} text ("the list of first index barcodes to look for, comma separated with no spaces. 'all' is accepted")
     opt[String]("barcodes2") action { (x, c) => c.copy(barcodes2 = x)} text ("the list of second index barcodes to look for, comma separated with no spaces. 'all' is accepted")
-
-    opt[Boolean]("renameReadPairs") action { (x, c) => c.copy(renameReads = x)} text ("rename the first and second reads so that they end with slash 1 and slash 2 respectively")
-    opt[Boolean]("checkReadNames") action { (x, c) => c.copy(checkReads = x)} text ("do we check that the read names for pairs are the same, except the ending slash number (default true)")
     opt[Int]("maxDistance") action { (x, c) => c.copy(maxBarcodeDist = x)} text ("the max edit distance we allow for a barcode (default 1)")
-    opt[Int]("hexTrim") action { (x, c) => c.copy(hexTrim = x)} text ("if we want to trim off the first X bases since the reads were generated with random heximer primers")
 
 
     // some general command-line setup stuff
@@ -118,7 +113,6 @@ object Main extends App {
 
       // get a metrics output file
       val metricsOutput = BarcodeOccurance(barcodes1, barcodes2, config.maxBarcodeDist)
-      val renamer = new ReadCorrector(config.renameReads,config.hexTrim)
 
       // ----------------------------------------------------------------------------------------------------------------------------
       // process the reads
@@ -140,16 +134,12 @@ object Main extends App {
         val barcode1: Option[FastqRecord] = if (useBarcode1) Some(inBarcodeFQ1.get.next()) else None
         val barcode2: Option[FastqRecord] = if (useBarcode2) Some(inBarcodeFQ2.get.next()) else None
 
-        // get the renamed reads
-        val renamedReads = renamer.correctReads(read1, read2.get)
-
         val barcodeAndDistance1 = if (barcodes1.isDefined) BarcodeEditDistance.distance(barcode1, barcodes1.get) else Tuple2[Option[String], Int](Some("all"), 0)
         val barcodeAndDistance2 = if (barcodes2.isDefined) BarcodeEditDistance.distance(barcode2, barcodes2.get) else Tuple2[Option[String], Int](Some("all"), 0)
 
         // should we rename the reads in any way?
         // -------------------------------------------------------------------------------------------------------------------------
-        if (renamedReads.isDefined &&
-          (!barcodes1.isDefined || (barcodeAndDistance1._1.isDefined && barcodeAndDistance1._2 <= config.maxBarcodeDist)) &&
+        if ((!barcodes1.isDefined || (barcodeAndDistance1._1.isDefined && barcodeAndDistance1._2 <= config.maxBarcodeDist)) &&
           (!barcodes2.isDefined || (barcodeAndDistance2._1.isDefined && barcodeAndDistance2._2 <= config.maxBarcodeDist))) {
           readCountOutput += 1
 
@@ -158,9 +148,9 @@ object Main extends App {
           if (useBarcode1) outIndexFQ1.get.write(barcode1.get)
           if (useBarcode2) outIndexFQ2.get.write(barcode2.get)
 
-          outFQ1.write(renamedReads.get._1)
+          outFQ1.write(read1)
           if (pairedEnd)
-            outFQ2.get.write(renamedReads.get._2.get)
+            outFQ2.get.write(read2.get)
         }
 
         metricsOutput.addEditDistance(if (barcode1.isDefined) Some(barcode1.get.getReadString) else Some("all"),  if (barcode2.isDefined) Some(barcode2.get.getReadString) else Some("all"), 0, 0)
@@ -234,11 +224,8 @@ case class Config(inFastq1: File = new File(Main.NOTAREALFILENAME),
                   barcodeStatsUknownFile: File = new File(Main.NOTAREALFILENAME),
                   barcodes1: String = "all",
                   barcodes2: String = "all",
-                  renameReads: Boolean = false,
-                  checkReads: Boolean = true,
                   maxBarcodeDist: Int = 1,
                   overlapFile: File = new File(Main.NOTAREALFILENAME),
-                  readLength: Int = 101,
-                  hexTrim: Int = 0
+                  readLength: Int = 101
                    )
 
