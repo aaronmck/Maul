@@ -2,14 +2,17 @@ package main.scala
 
 import _root_.algorithms.BarcodeEditDistance
 import _root_.algorithms.stats.OverlapCounts
-import java.io.{PrintWriter, File, BufferedInputStream}
-import net.sf.picard.fastq.{FastqWriter, FastqRecord, FastqWriterFactory, FastqReader}
-import main.scala.input.{SequenceReader, ReadContainer, FastqSequenceReader}
+import java.io.{BufferedInputStream, File, PrintWriter}
+
+import net.sf.picard.fastq.{FastqReader, FastqRecord, FastqWriter, FastqWriterFactory}
+import main.scala.input.{FastqSequenceReader, ReadContainer, SequenceReader}
 import main.scala.output.FastqOutputManager
 import java.util.logging.SimpleFormatter
 
 import main.scala.stats._
 import java.util.logging.{Level, Logger}
+
+import main.scala.algorithms.ReadTrimmer
 
 /**
  * created by aaronmck on 2/13/14
@@ -62,6 +65,8 @@ object Main extends App {
     opt[String]("barcodes1") action { (x, c) => c.copy(barcodes1 = x)} text ("the list of first index barcodes to look for, comma separated with no spaces. 'all' is accepted")
     opt[String]("barcodes2") action { (x, c) => c.copy(barcodes2 = x)} text ("the list of second index barcodes to look for, comma separated with no spaces. 'all' is accepted")
     opt[Int]("maxDistance") action { (x, c) => c.copy(maxBarcodeDist = x)} text ("the max edit distance we allow for a barcode (default 1)")
+    opt[Int]("trimStart") action { (x, c) => c.copy(trimStart = x)} text ("do we want to trim bases out of the first read? if so the distance between the start and stop should be greater than 0")
+    opt[Int]("trimStop") action { (x, c) => c.copy(trimStop = x)} text ("where to stop trimming (see trimStart)")
 
 
     // some general command-line setup stuff
@@ -82,6 +87,8 @@ object Main extends App {
 
       // are we using one fastq or two
       val pairedEnd = config.inFastq2.exists()
+
+      val trimLength = config.trimStop - config.trimStart
 
       // ----------------------------------------------------------------------------------------------------------------------------
       // setup the input files
@@ -148,7 +155,10 @@ object Main extends App {
           if (useBarcode1) outIndexFQ1.get.write(barcode1.get)
           if (useBarcode2) outIndexFQ2.get.write(barcode2.get)
 
-          outFQ1.write(read1)
+          if (trimLength > 0)
+            outFQ1.write(ReadTrimmer.trimRead(read1,config.trimStart,config.trimStop))
+          else
+            outFQ1.write(read1)
           if (pairedEnd)
             outFQ2.get.write(read2.get)
         }
@@ -226,6 +236,8 @@ case class Config(inFastq1: File = new File(Main.NOTAREALFILENAME),
                   barcodes2: String = "all",
                   maxBarcodeDist: Int = 1,
                   overlapFile: File = new File(Main.NOTAREALFILENAME),
-                  readLength: Int = 101
+                  readLength: Int = 101,
+                  trimStart: Int = 0,
+                  trimStop: Int = 0
                    )
 
