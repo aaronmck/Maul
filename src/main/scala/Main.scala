@@ -64,6 +64,7 @@ object Main extends App {
 
     opt[String]("barcodes1") action { (x, c) => c.copy(barcodes1 = x)} text ("the list of first index barcodes to look for, comma separated with no spaces. 'all' is accepted")
     opt[String]("barcodes2") action { (x, c) => c.copy(barcodes2 = x)} text ("the list of second index barcodes to look for, comma separated with no spaces. 'all' is accepted")
+    opt[String]("sciSplit") action { (x, c) => c.copy(sciSplitString= x)} text ("sci single cell RNA sequencing uses a ")
     opt[Int]("maxDistance") action { (x, c) => c.copy(maxBarcodeDist = x)} text ("the max edit distance we allow for a barcode (default 1)")
     opt[Int]("trimStart") action { (x, c) => c.copy(trimStart = x)} text ("do we want to trim bases out of the first read? if so the distance between the start and stop should be greater than 0")
     opt[Int]("trimStop") action { (x, c) => c.copy(trimStop = x)} text ("where to stop trimming (see trimStart)")
