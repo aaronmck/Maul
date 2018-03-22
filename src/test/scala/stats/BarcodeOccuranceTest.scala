@@ -1,8 +1,7 @@
 package test.scala.stats
 
 import algorithms.BarcodeEditDistance
-import org.scalatest.FlatSpec
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{FlatSpec, Matchers}
 import main.scala.stats.BarcodeOccurance
 
 /**
@@ -32,7 +31,7 @@ import main.scala.stats.BarcodeOccurance
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  *
  */
-class BarcodeOccuranceTest extends FlatSpec with ShouldMatchers {
+class BarcodeOccuranceTest extends FlatSpec with Matchers {
   "BarcodeEditDistance" should "store an edit distance entry correctly" in {
     val barcodes1 = Some(Array[String]("TTTT","TAAA"))
     val barcodes2 = None
@@ -40,10 +39,10 @@ class BarcodeOccuranceTest extends FlatSpec with ShouldMatchers {
 
     barcodeOccurance.addEditDistance(Some("TTTT"),None,0,0)
     val counts = barcodeOccurance.count(Some("TTTT"),None).get
-    assert(counts.length == 3)
-    assert(counts(0) == 1)
-    assert(counts(1) == 0)
-    assert(counts(2) == 0)
+    (counts.length) should be (3)
+    (counts(0)) should be (1)
+    (counts(1)) should be (0)
+    (counts(2)) should be (0)
   }
 
   "BarcodeEditDistance" should "store errors correctly" in {
@@ -53,10 +52,10 @@ class BarcodeOccuranceTest extends FlatSpec with ShouldMatchers {
 
     barcodeOccurance.addEditDistance(Some("TTTT"),None,1,0)
     val counts = barcodeOccurance.count(Some("TTTT"),None).get
-    assert(counts.length == 3)
-    assert(counts(0) == 0)
-    assert(counts(1) == 1)
-    assert(counts(2) == 0)
+    (counts.length) should be (3)
+    (counts(0)) should be (0)
+    (counts(1)) should be (1)
+    (counts(2)) should be (0)
   }
 
   "BarcodeEditDistance" should "handle incorrect barcodes without crashing" in {
@@ -66,9 +65,9 @@ class BarcodeOccuranceTest extends FlatSpec with ShouldMatchers {
 
     barcodeOccurance.addEditDistance(Some("AASDA"),None,1,0)
     val counts = barcodeOccurance.count(Some("TTTT"),None).get
-    assert(counts.length == 3)
-    assert(counts(0) == 0)
-    assert(counts(1) == 0)
-    assert(counts(2) == 0)
+    (counts.length) should be (3)
+    (counts(0)) should be (0)
+    (counts(1)) should be (0)
+    (counts(2)) should be (0)
   }
 }

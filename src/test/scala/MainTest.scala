@@ -2,8 +2,7 @@ package test.scala.stats
 
 import algorithms.BarcodeEditDistance
 import algorithms.stats.OverlapCounts
-import org.scalatest.FlatSpec
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{FlatSpec, Matchers}
 
 /**
  * created by aaronmck on 2/19/14
@@ -32,17 +31,16 @@ import org.scalatest.matchers.ShouldMatchers
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  *
  */
-class MainTest extends FlatSpec with ShouldMatchers {
+class MainTest extends FlatSpec with Matchers {
 
   "BarcodeEditDistance" should "reverseComp correctly" in {
-    println(BarcodeEditDistance.reverseComp("AATT"))
-    assert(BarcodeEditDistance.reverseComp("AATT").equals("AATT"))
-    println(BarcodeEditDistance.reverseComp("ACGT"))
-    assert(BarcodeEditDistance.reverseComp("ACGT").equals("ACGT"))
-    println(BarcodeEditDistance.reverseComp("AGGT"))
-    assert(BarcodeEditDistance.reverseComp("AGGT").equals("ACCT"))
-    println(BarcodeEditDistance.reverseComp("AGGTNN"))
-    assert(BarcodeEditDistance.reverseComp("AGGTNN").equals("NNACCT"))
+    (BarcodeEditDistance.reverseComp("AATT") should be ("AATT"))
+
+    (BarcodeEditDistance.reverseComp("ACGT") should be ("ACGT"))
+
+    (BarcodeEditDistance.reverseComp("AGGT")  should be ("ACCT"))
+
+    (BarcodeEditDistance.reverseComp("AGGTNN")  should be ("NNACCT"))
 
   }
 }

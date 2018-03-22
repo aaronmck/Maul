@@ -40,7 +40,7 @@ case class BarcodeEditDistance(barcodes: Array[String], trimDownToSize: Boolean 
 
       // match from the front, we allow N's or shorter specified barcodes (the equivilent of N's to the length of the barcode)
       code.zipWithIndex.map {
-        case (base, index) => if (base != "N" && barcode(index) != base) cnt += 1
+        case (base, index) => if (base != 'N' && barcode(index) != base) cnt += 1
       }
       if (cnt < bestDist) {
         bestDist = cnt
@@ -50,7 +50,7 @@ case class BarcodeEditDistance(barcodes: Array[String], trimDownToSize: Boolean 
       // check the reverse complement
       cnt = 0
       BarcodeEditDistance.reverseComp(code).zipWithIndex.map {
-        case (base, index) => if (base != "N" && barcode(index) != base) cnt += 1
+        case (base, index) => if (base != 'N' && barcode(index) != base) cnt += 1
       }
       if (cnt < bestDist) {
         bestDist = cnt
@@ -96,7 +96,7 @@ object BarcodeEditDistance {
       var cnt = 0
 
       // N's are treated as mismatches, if the barcode is shorter than the sequence we call the remaining mismatches
-      code.zipWithIndex.map { case (base, index) => if (base != "N" && barcode(index) != base) cnt += 1}
+      code.zipWithIndex.map { case (base, index) => if (base != 'N' && barcode(index) != base) cnt += 1}
       if (cnt < bestDist) {
         bestDist = cnt
         bestCode = Some(code)
@@ -104,7 +104,7 @@ object BarcodeEditDistance {
 
       // check the reverse complement
       cnt = 0
-      reverseComp(code).zipWithIndex.map {case (base, index) => if (base != "N" && barcode(index) != base) cnt += 1}
+      reverseComp(code).zipWithIndex.map {case (base, index) => if (base != 'N' && barcode(index) != base) cnt += 1}
       if (cnt < bestDist) {
         bestDist = cnt
         bestCode = Some(code)
